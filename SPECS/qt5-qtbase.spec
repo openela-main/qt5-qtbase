@@ -2,8 +2,6 @@
 %global multilib_archs x86_64 %{ix86} %{?mips} ppc64 ppc s390x s390 sparc64 sparcv9
 %global multilib_basearchs x86_64 %{?mips64} ppc64 s390x sparc64
 
-%global openssl -openssl-linked
-
 %if 0%{?fedora} < 29 && 0%{?rhel} < 9
 %ifarch %{ix86}
 %global no_sse2  -no-sse2
@@ -47,7 +45,6 @@
 %global qt_settings 1
 %endif
 
-%global journald -journald
 BuildRequires: make
 BuildRequires: pkgconfig(libsystemd)
 
@@ -59,8 +56,8 @@ BuildRequires: pkgconfig(libsystemd)
 
 Name:    qt5-qtbase
 Summary: Qt5 - QtBase components
-Version: 5.15.3
-Release: 1%{?dist}
+Version: 5.15.9
+Release: 7%{?dist}
 
 
 # See LGPL_EXCEPTIONS.txt, for exception details
@@ -86,11 +83,8 @@ Source10: macros.qt5-qtbase
 # support multilib optflags
 Patch2: qtbase-multilib_optflags.patch
 
-# borrowed from opensuse
-# track private api via properly versioned symbols
-# downside: binaries produced with these differently-versioned symbols are no longer
-# compatible with qt-project.org's Qt binary releases.
-Patch8: tell-the-truth-about-private-api.patch
+# make mixing versions with private apis a warning instead of fatal error
+Patch3: qtbase-everywhere-src-5.15.6-private_api_warning.patch
 
 # upstreamable patches
 # namespace QT_VERSION_CHECK to workaround major/minor being pre-defined (#1396755)
@@ -132,9 +126,6 @@ Patch64: qt5-qtbase-5.12.1-firebird-4.0.0.patch
 # fix for new mariadb
 Patch65: qtbase-opensource-src-5.9.0-mysql.patch
 
-# python3
-Patch68: qtbase-ambiguous-python-shebang.patch
-
 # https://fedoraproject.org/wiki/Changes/Qt_Wayland_By_Default_On_Gnome
 # https://bugzilla.redhat.com/show_bug.cgi?id=1732129
 Patch80: qtbase-use-wayland-on-gnome.patch
@@ -144,12 +135,23 @@ Patch90: %{name}-gcc11.patch
 
 ## upstream patches
 # https://invent.kde.org/qt/qt/qtbase, kde/5.15 branch
-# git diff v5.15.3-lts-lgpl..HEAD | gzip > kde-5.15-rollup-$(date +%Y%m%d).patch.gz
+# git diff v5.15.9-lts-lgpl..HEAD | gzip > kde-5.15-rollup-$(date +%Y%m%d).patch.gz
 # patch100 in lookaside cache due to large'ish size -- rdieter
-Patch100: kde-5.15-rollup-20220324.patch.gz
+Patch100: kde-5.15-rollup-20230411.patch.gz
 # HACK to make 'fedpkg sources' consider it 'used"
-Source100: kde-5.15-rollup-20220324.patch.gz
+Source100: kde-5.15-rollup-20230411.patch.gz
 
+Patch101: qtbase-5.15.8-fix-missing-qtsan-include.patch
+
+Patch110: CVE-2023-32762-qtbase-5.15.patch
+Patch111: CVE-2023-32763-qtbase-5.15.patch
+Patch112: CVE-2023-33285-qtbase-5.15.patch
+Patch113: CVE-2023-34410-qtbase-5.15.patch
+Patch114: CVE-2023-37369-qtbase-5.15.patch
+Patch115: CVE-2023-38197-qtbase-5.15.patch
+
+# gating related patches
+Patch200: qtbase-disable-tests-not-working-in-gating.patch
 
 # Do not check any files in %%{_qt5_plugindir}/platformthemes/ for requires.
 # Those themes are there for platform integration. If the required libraries are
@@ -174,11 +176,8 @@ BuildRequires: clang >= 3.7.0
 %else
 BuildRequires: gcc-c++
 %endif
-# http://bugzilla.redhat.com/1196359
-%if 0%{?fedora} || 0%{?rhel} > 6
 %global dbus -dbus-linked
 BuildRequires: pkgconfig(dbus-1)
-%endif
 BuildRequires: pkgconfig(libdrm)
 BuildRequires: pkgconfig(fontconfig)
 BuildRequires: pkgconfig(gl)
@@ -192,6 +191,7 @@ BuildRequires: pkgconfig(libudev)
 BuildRequires: openssl-devel
 BuildRequires: pkgconfig(libpulse) pkgconfig(libpulse-mainloop-glib)
 BuildRequires: pkgconfig(libinput)
+BuildRequires: pkgconfig(libsystemd)
 BuildRequires: pkgconfig(xcb-xkb) >= 1.10
 BuildRequires: pkgconfig(xcb-util)
 BuildRequires: pkgconfig(xkbcommon) >= 0.4.1
@@ -222,6 +222,7 @@ BuildRequires: libicu-devel
 %endif
 BuildRequires: pkgconfig(xcb) pkgconfig(xcb-glx) pkgconfig(xcb-icccm) pkgconfig(xcb-image) pkgconfig(xcb-keysyms) pkgconfig(xcb-renderutil)
 BuildRequires: pkgconfig(zlib)
+BuildRequires: pkgconfig(libzstd)
 BuildRequires: perl-generators
 # see patch68
 BuildRequires: python3
@@ -270,6 +271,12 @@ Summary: Common files for Qt5
 # offer upgrade path for qtquick1 somewhere... may as well be here -- rex
 Obsoletes: qt5-qtquick1 < 5.9.0
 Obsoletes: qt5-qtquick1-devel < 5.9.0
+%if "%{?ibase}" == "-no-sql-ibase"
+Obsoletes: qt5-qtbase-ibase < %{version}-%{release}
+%endif
+%if "%{?tds}" == "-no-sql-tds"
+Obsoletes: qt5-qtbase-tds < %{version}-%{release}
+%endif
 Requires: %{name} = %{version}-%{release}
 BuildArch: noarch
 %description common
@@ -378,7 +385,8 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 %package gui
 Summary: Qt5 GUI-related libraries
 Requires: %{name}%{?_isa} = %{version}-%{release}
-%if ! 0%{?rhel} < 8
+# where Recommends are supported
+%if 0%{?fedora} || 0%{?rhel} >= 8
 Recommends: mesa-dri-drivers
 %endif
 Obsoletes: qt5-qtbase-x11 < 5.2.0
@@ -393,38 +401,46 @@ Qt5 libraries used for drawing widgets and OpenGL items.
 %prep
 %setup -q -n %{qt_module}-everywhere-src-%{version}
 
+## dowstream patches
+%patch -P3 -p1 -b .private_api_warning
+
 ## upstream fixes
-
-# omit '-b .tell-the-truth-about-private-api' so it doesn't end up in installed files -- rdieter
-%patch8 -p1
-
-%patch50 -p1 -b .QT_VERSION_CHECK
-# FIXME/TODO : rebase or drop -- rdieter
-#patch51 -p1 -b .hidpi_scale_at_192
-%patch52 -p1 -b .moc_macros
-%patch53 -p1 -b .qt5gui_cmake_isystem_includes
-%patch54 -p1 -b .qmake_LFLAGS
-%patch55 -p1 -b .no_relocatable
-%patch56 -p1 -b .libglvnd
-%patch61 -p1 -b .qt5-qtbase-cxxflag
+%patch -P50 -p1 -b .QT_VERSION_CHECK
+#patch -P51 -p1 -b .hidpi_scale_at_192
+%patch -P52 -p1 -b .moc_macros
+%patch -P53 -p1 -b .qt5gui_cmake_isystem_includes
+%patch -P54 -p1 -b .qmake_LFLAGS
+%patch -P55 -p1 -b .no_relocatable
+%patch -P56 -p1 -b .libglvnd
+%patch -P61 -p1 -b .qt5-qtbase-cxxflag
 %if 0%{?fedora} < 35
-%patch63 -p1 -b .firebird
+%patch -P63 -p1 -b .firebird
 %else
-%patch64 -p1 -b .firebird
+%patch -P64 -p1 -b .firebird
 %endif
 %if 0%{?fedora} > 27
-%patch65 -p1 -b .mysql
+%patch -P65 -p1 -b .mysql
 %endif
-%patch68 -p1
 
 %if 0%{?fedora} > 30 || 0%{?rhel} > 9
-%patch80 -p1 -b .use-wayland-on-gnome.patch
+%patch -P80 -p1 -b .use-wayland-on-gnome.patch
 %endif
 
-%patch90 -p1 -b .gcc11
+%patch -P90 -p1 -b .gcc11
 
 ## upstream patches
-%patch100 -p1
+%patch -P100 -p1
+%patch -P101 -p1
+
+%patch -P110 -p1
+%patch -P111 -p1
+%patch -P112 -p1
+%patch -P113 -p1
+%patch -P114 -p1
+%patch -P115 -p1
+
+## gating related patches
+%patch -P200 -p1 -b .disable-tests-not-working-in-gating
 
 # move some bundled libs to ensure they're not accidentally used
 pushd src/3rdparty
@@ -497,16 +513,17 @@ export MAKEFLAGS="%{?_smp_mflags}"
   -release \
   -shared \
   -accessibility \
-  %{?dbus}%{!?dbus:-dbus-runtime} \
+  -dbus-linked \
   %{?egl:-egl -eglfs} \
   -fontconfig \
   -glib \
   -gtk \
   %{?ibase} \
   -icu \
-  %{?journald} \
+  -journald \
   -optimized-qmake \
-  %{?openssl} \
+  -openssl-linked \
+  -libproxy \
   %{!?examples:-nomake examples} \
   %{!?build_tests:-nomake tests} \
   -no-pch \
@@ -535,7 +552,11 @@ export MAKEFLAGS="%{?_smp_mflags}"
   QMAKE_LFLAGS_RELEASE="${LDFLAGS:-$RPM_LD_FLAGS}"
 
 # Validate config results
+%if "%{?ibase}" != "-no-sql-ibase"
+for config_test in egl-x11 ibase ; do
+%else
 for config_test in egl-x11 ; do
+%endif
 config_result="$(grep ^cache.${config_test}.result config.cache | cut -d= -f2 | tr -d ' ')"
 if [ "${config_result}" != "true" ]; then
   echo "${config_test} detection failed"
@@ -597,7 +618,7 @@ translationdir=%{_qt5_translationdir}
 
 Name: Qt5
 Description: Qt5 Configuration
-Version: 5.15.3
+Version: 5.15.9
 EOF
 
 # rpm macros
@@ -1117,6 +1138,38 @@ fi
 
 
 %changelog
+* Fri Jul 21 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.9-7
+- Fix infinite loops in QXmlStreamReader (CVE-2023-38197)
+  Resolves: bz#2222771
+
+* Fri Jun 09 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.9-6
+- Don't allow remote attacker to bypass security restrictions caused by
+  flaw in certificate validation (CVE-2023-34410) (version #2)
+  Resolves: bz#2212754
+
+* Tue Jun 06 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.9-5
+- Don't allow remote attacker to bypass security restrictions caused by
+  flaw in certificate validation (CVE-2023-34410)
+  Resolves: bz#2212754
+
+* Wed May 24 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.9-4
+- Fix specific overflow in qtextlayout
+- Fix incorrect parsing of the strict-transport-security (HSTS) header
+- Fix buffer over-read via a crafted reply from a DNS server
+  Resolves: bz#2209492
+
+* Wed Apr 26 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.9-3
+- Rebuild (elfutils#2188064)
+  Resolves: bz#2175727
+
+* Tue Apr 25 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.9-2
+- Disable tests failing in gating
+  Resolves: bz#2175727
+
+* Mon Apr 17 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.9-1
+- 5.15.9 + sync with Fedora
+  Resolves: bz#2175727
+
 * Thu Mar 24 2022 Jan Grulich <jgrulich@redhat.com> - 5.15.3-1
 - 5.15.3 + sync with Fedora
   Resolves: bz#2061354
