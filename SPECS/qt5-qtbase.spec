@@ -41,7 +41,7 @@ BuildRequires: pkgconfig(libsystemd)
 Name:    qt5-qtbase
 Summary: Qt5 - QtBase components
 Version: 5.15.3
-Release: 1%{?dist}
+Release: 5%{?dist}
 
 # See LGPL_EXCEPTIONS.txt, for exception details
 License: LGPLv2 with exceptions or GPLv3 with exceptions
@@ -124,6 +124,12 @@ Patch90: %{name}-gcc11.patch
 Patch100: kde-5.15-rollup-20220324.patch.gz
 # HACK to make 'fedpkg sources' consider it 'used"
 Source100: kde-5.15-rollup-20220324.patch.gz
+Patch110: CVE-2023-32762-qtbase-5.15.patch
+Patch111: CVE-2023-32763-qtbase-5.15.patch
+Patch112: CVE-2023-33285-qtbase-5.15.patch
+Patch113: CVE-2023-34410-qtbase-5.15.patch
+Patch114: CVE-2023-37369-qtbase-5.15.patch
+Patch115: CVE-2023-38197-qtbase-5.15.patch
 
 # Do not check any files in %%{_qt5_plugindir}/platformthemes/ for requires.
 # Those themes are there for platform integration. If the required libraries are
@@ -381,6 +387,13 @@ Qt5 libraries used for drawing widgets and OpenGL items.
 
 ## upstream patches
 %patch100 -p1
+
+%patch110 -p1
+%patch111 -p1
+%patch112 -p1
+%patch113 -p1
+%patch114 -p1
+%patch115 -p1
 
 # move some bundled libs to ensure they're not accidentally used
 pushd src/3rdparty
@@ -1055,6 +1068,26 @@ fi
 
 
 %changelog
+* Fri Jul 21 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.3-5
+- Fix infinite loops in QXmlStreamReader (CVE-2023-38197)
+  Resolves: bz#2222770
+
+* Fri Jun 09 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.3-4
+- Don't allow remote attacker to bypass security restrictions caused by
+  flaw in certificate validation (CVE-2023-34410) (version #2)
+  Resolves: bz#2212753
+
+* Tue Jun 06 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.3-3
+- Don't allow remote attacker to bypass security restrictions caused by
+  flaw in certificate validation (CVE-2023-34410)
+  Resolves: bz#2212753
+
+* Wed May 24 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.3-2
+- Fix specific overflow in qtextlayout
+- Fix incorrect parsing of the strict-transport-security (HSTS) header
+- Fix buffer over-read via a crafted reply from a DNS server
+  Resolves: bz#2209491
+
 * Thu Mar 24 2022 Jan Grulich <jgrulich@redhat.com> - 5.15.3-1
 - 5.15.3 + sync with Fedora
   Resolves: bz#2061377
