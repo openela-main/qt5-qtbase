@@ -57,7 +57,7 @@ BuildRequires: pkgconfig(libsystemd)
 Name:    qt5-qtbase
 Summary: Qt5 - QtBase components
 Version: 5.15.9
-Release: 7%{?dist}
+Release: 9%{?dist}
 
 
 # See LGPL_EXCEPTIONS.txt, for exception details
@@ -149,6 +149,9 @@ Patch112: CVE-2023-33285-qtbase-5.15.patch
 Patch113: CVE-2023-34410-qtbase-5.15.patch
 Patch114: CVE-2023-37369-qtbase-5.15.patch
 Patch115: CVE-2023-38197-qtbase-5.15.patch
+Patch116: 0001-CVE-2023-51714-qtbase-5.15.patch
+Patch117: 0002-CVE-2023-51714-qtbase-5.15.patch
+Patch118: CVE-2024-25580-qtbase-5.15.patch
 
 # gating related patches
 Patch200: qtbase-disable-tests-not-working-in-gating.patch
@@ -438,6 +441,9 @@ Qt5 libraries used for drawing widgets and OpenGL items.
 %patch -P113 -p1
 %patch -P114 -p1
 %patch -P115 -p1
+%patch -P116 -p1
+%patch -P117 -p1
+%patch -P118 -p1
 
 ## gating related patches
 %patch -P200 -p1 -b .disable-tests-not-working-in-gating
@@ -1138,6 +1144,14 @@ fi
 
 
 %changelog
+* Fri Feb 16 2024 Jan Grulich <jgrulich@redhat.com> - 5.15.9-9
+- Fix CVE-2024-25580: potential buffer overflow when reading KTX images
+  Resolves: RHEL-25726
+
+* Thu Jan 04 2024 Jan Grulich <jgrulich@redhat.com> - 5.15.9-8
+- Fix incorrect integer overflow check in HTTP2 implementation
+  Resolves: RHEL-20239
+
 * Fri Jul 21 2023 Jan Grulich <jgrulich@redhat.com> - 5.15.9-7
 - Fix infinite loops in QXmlStreamReader (CVE-2023-38197)
   Resolves: bz#2222771
