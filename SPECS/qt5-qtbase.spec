@@ -41,7 +41,7 @@ BuildRequires: pkgconfig(libsystemd)
 Name:    qt5-qtbase
 Summary: Qt5 - QtBase components
 Version: 5.15.3
-Release: 7%{?dist}
+Release: 8%{?dist}
 
 # See LGPL_EXCEPTIONS.txt, for exception details
 License: LGPLv2 with exceptions or GPLv3 with exceptions
@@ -124,6 +124,7 @@ Patch90: %{name}-gcc11.patch
 Patch100: kde-5.15-rollup-20220324.patch.gz
 # HACK to make 'fedpkg sources' consider it 'used"
 Source100: kde-5.15-rollup-20220324.patch.gz
+
 Patch110: CVE-2023-32762-qtbase-5.15.patch
 Patch111: CVE-2023-32763-qtbase-5.15.patch
 Patch112: CVE-2023-33285-qtbase-5.15.patch
@@ -133,6 +134,9 @@ Patch115: CVE-2023-38197-qtbase-5.15.patch
 Patch116: 0001-CVE-2023-51714-qtbase-5.15.patch
 Patch117: 0002-CVE-2023-51714-qtbase-5.15.patch
 Patch118: CVE-2024-25580-qtbase-5.15.patch
+# Fix related to CVE-2024-39936, which I think is needed to be backported
+Patch119: qtbase-h2-emit-encrypted-for-first-reply-similar-to-h1.patch
+Patch120: CVE-2024-39936.patch
 
 # Do not check any files in %%{_qt5_plugindir}/platformthemes/ for requires.
 # Those themes are there for platform integration. If the required libraries are
@@ -400,6 +404,8 @@ Qt5 libraries used for drawing widgets and OpenGL items.
 %patch116 -p1
 %patch117 -p1
 %patch118 -p1
+%patch119 -p1
+%patch120 -p1
 
 # move some bundled libs to ensure they're not accidentally used
 pushd src/3rdparty
@@ -1074,6 +1080,10 @@ fi
 
 
 %changelog
+* Tue Jul 16 2024 Jan Grulich <jgrulich@redhat.com> - 5.15.3-8
+- HTTP2: Delay any communication until encrypted() can be responded to
+  Resolves: RHEL-46340
+
 * Fri Feb 16 2024 Jan Grulich <jgrulich@redhat.com> - 5.15.3-7
 - Fix CVE-2024-25580: potential buffer overflow when reading KTX images
   Resolves: RHEL-25725
