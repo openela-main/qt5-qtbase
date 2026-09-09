@@ -57,7 +57,7 @@ BuildRequires: pkgconfig(libsystemd)
 Name:    qt5-qtbase
 Summary: Qt5 - QtBase components
 Version: 5.15.9
-Release: 11%{?dist}
+Release: 11%{?dist}.1
 
 
 # See LGPL_EXCEPTIONS.txt, for exception details
@@ -154,6 +154,8 @@ Patch117: 0002-CVE-2023-51714-qtbase-5.15.patch
 Patch118: CVE-2024-25580-qtbase-5.15.patch
 Patch119: CVE-2024-39936.patch
 Patch120: CVE-2025-5455-qtbase-5.15.patch
+# https://github.com/qt/qt5compat/commit/894079b4932dc878b505056cab9887cca67a011a
+Patch121: CVE-2026-9499.patch
 
 # gating related patches
 Patch200: qtbase-disable-tests-not-working-in-gating.patch
@@ -448,6 +450,7 @@ Qt5 libraries used for drawing widgets and OpenGL items.
 %patch -P118 -p1
 %patch -P119 -p1
 %patch -P120 -p1
+%patch -P121 -p1
 
 ## gating related patches
 %patch -P200 -p1 -b .disable-tests-not-working-in-gating
@@ -1148,11 +1151,15 @@ fi
 
 
 %changelog
+* Tue Aug 25 2026 RHEL Packaging Agent <redhat-ymir-agent@redhat.com> - 5.15.9-11.1
+- Fix CVE-2026-9499: out-of-bounds read in QTextCodec::codecForName()
+  Resolves: RHEL-247216
+
 * Thu Jun 12 2025 Jan Grulich <jgrulich@redhat.com> - 5.15.9-11
 - qt5: QtCore Assertion Failure Denial of Service
-  Resolves: RHEL-96233
+  Resolves: RHEL-96231
 
-* Wed Jul 11 2024 Jan Grulich <jgrulich@redhat.com> - 5.15.9-10
+* Thu Jul 11 2024 Jan Grulich <jgrulich@redhat.com> - 5.15.9-10
 - HTTP2: Delay any communication until encrypted() can be responded to
   Resolves: RHEL-46351
 
