@@ -41,7 +41,7 @@ BuildRequires: pkgconfig(libsystemd)
 Name:    qt5-qtbase
 Summary: Qt5 - QtBase components
 Version: 5.15.3
-Release: 10%{?dist}
+Release: 11%{?dist}
 
 # See LGPL_EXCEPTIONS.txt, for exception details
 License: LGPLv2 with exceptions or GPLv3 with exceptions
@@ -147,6 +147,14 @@ Patch123: qtbase-CVE-2026-19248-2.patch
 # CVE-2026-11573
 # https://github.com/qt/qtbase/commit/387633a6069a5e0e9b976971691b1b82725b6132
 Patch124: qtbase-CVE-2026-11573.patch
+# CVE-2026-16762
+# https://github.com/qt/qtbase/commit/b3eb2e508c88c553968848b5a3b953509ad59e4a
+# https://github.com/qt/qtbase/commit/1bbc829c8cffb3adeeaabf31f24e8d00037287e5
+# Adapted from:
+# https://github.com/JulienMaille/qt515-cve-backports/blob/main/patches/qtbase/CVE-2026-16762/qt5.15/backport.patch
+Patch125: qtbase-qxmlstreamreader-fix-quadratic-behavior-in-resolvetag.patch
+Patch126: qtbase-qxmlstreamreader-shrink-the-size-of-attributename.patch
+
 
 # Do not check any files in %%{_qt5_plugindir}/platformthemes/ for requires.
 # Those themes are there for platform integration. If the required libraries are
@@ -420,6 +428,8 @@ Qt5 libraries used for drawing widgets and OpenGL items.
 %patch122 -p1
 %patch123 -p1
 %patch124 -p1
+%patch125 -p1
+%patch126 -p1
 
 # move some bundled libs to ensure they're not accidentally used
 pushd src/3rdparty
@@ -1094,6 +1104,10 @@ fi
 
 
 %changelog
+* Fri Oct 23 2026 RHEL Packaging Agent <redhat-ymir-agent@redhat.com> - 5.15.3-11
+- CVE-2026-16762 qt5: qt: Denial of Service via crafted XML parsing in QXmlStreamReader
+  Resolves: RHEL-291031
+
 * Fri Oct 09 2026 Jan Grulich <jgrulich@redhat.com> - 5.15.3-10
 - Fix CVE-2026-19248: unbounded recursion and O(N²) behavior in QDom
   Resolves: RHEL-261130
